@@ -1,0 +1,73 @@
+﻿@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<h1 style="text-align:center">Liga</h1>
+<table id="ligaTable" class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Editar</th>
+            <th>IdLiga</th>
+            <th>Nombre</th>
+            <th>Logo</th>
+            <th>País</th>
+            <th>Eliminar</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+
+    function Delete(idLiga) {
+        if (confirm("¿Estas seguro de eliminar la liga seleccionada?")) {
+            $.ajax({
+                type: 'DELETE',
+                url: 'http://192.168.0.123/api/Liga/Delete/' + idLiga,
+                success: function (result) {
+                    if (result) {
+                        alert('Se a eliminado la liga correctamente');
+                        location.reload();
+                    } else {
+                        alert('Error al eliminar la liga');
+                    }
+                },
+                error: function (result) {
+                    alert('Error en la consulta.' + result.responseJSON.ErrorMessage);
+                }
+            });
+        }
+    }
+
+    $(document).ready(function () {
+        function getLiga() {
+            $.ajax({
+                url: 'http://192.168.0.123/api/Liga',
+                dataType: 'JSON',
+                data: "",
+                type: 'GET',
+                success: function (Liga) {
+                    $('#ligaTable tbody').empty();
+                    $.each(Liga, function (i, Ligas) {
+                        $('#ligaTable tbody').append(
+                            "<tr>"
+                            + "<td>" + '<a class = "btn btn-warning" href="/Receta/Form?id = ' + Ligas.idLiga + '">' + "EDITAR" + '</a>' + "</td>"
+                            + "<td>" + Ligas.idLiga + "</td>"
+                            + "<td>" + Ligas.nombre + "</td>"
+                            + "<td>" + "<img src=" + Ligas.logo + " width='100' height='100'></img>" + "</td>"
+                            + "<td>" + Ligas.pais.nombre + "</td>"
+                            + "<td>" + '<button class="btn btn-danger" onclick="Delete(' + Ligas.idLiga + ')">' + "ELIMINAR" + '</button>' + "</td>"
+                            + "</tr>");
+                    });
+                },
+                error: function (error) {
+                    console.log('Error: ', error);
+                    alert('No se pudo obtener la lista de Ligas');
+                }
+            });
+        }
+
+        getLiga();
+    });
+</script>

@@ -1,0 +1,338 @@
+﻿@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<h1 style="text-align:center">Jugador</h1>
+<div class="row">
+    <div class="col-md-6"><button class="btn btn-default" onclick="Formulario(0)">Agregar</button></div>
+</div>
+<div class="modal" id="formulario" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Formulario de Jugador</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtIdJugador" hidden />
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtNombre" placeholder="Nombre" />
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtApellidoPaterno" placeholder="ApellidoPaterno" />
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtApellidoMaterno" placeholder="ApellidoMaterno" />
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtFoto" placeholder="Foto" />
+                    </div>
+                    <div class="form-group">
+                        <select class="form-select" id="ddlNacionalidad" aria-label="Default select example">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtFechaNacimiento" placeholder="FechaNacimiento" />
+                    </div>
+                    <div class="form-group">
+                        <select class="form-select" id="ddlPosicion" aria-label="Default select example">
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="AddOrDelete()">Guardar</button>
+                <button type="button" class="btn btn-secondary" onclick="Cerrar()" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-5">
+
+            <div class="modal" id="myModal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title">Detalle</h4>
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <h5>
+                                Acción completada con éxito
+                            </h5>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" value="Regresar" data-dismiss="modal">Regresar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<table id="jugadorTable" class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Editar</th>
+            <th>IdJugador</th>
+            <th>Nombre</th>
+            <th>ApellidoPaterno</th>
+            <th>ApellidoMaterno</th>
+            <th>Foto</th>
+            <th>Nacionalidad</th>
+            <th>Fecha de Nacimiento</th>
+            <th>Posicion</th>
+            <th>Eliminar</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+
+    $(document).ready(function () {
+        PaisGetAll();
+        PosicionGetAll();
+        getJugador();
+        EquipoGetAll();
+    });
+
+    function Delete(idJugador) {
+        if (confirm("¿Estas seguro de eliminar el Jugador seleccionado?")) {
+            $.ajax({
+                type: 'DELETE',
+                url: 'http://192.168.0.123/api/Jugador/' + idJugador,
+                success: function (result) {
+                    if (result) {
+                        alert('Se a eliminado el jugador correctamente');
+                        location.reload();
+                    } else {
+                        alert('Error al eliminar al jugador');
+                    }
+                },
+                error: function (result) {
+                    alert('Error en la consulta.' + result.ErrorMessage);
+                }
+            });
+        }
+    }
+
+    function GetById(idJugador) {
+        $.ajax({
+            type: 'GET',
+            url: 'http://192.168.0.123/api/Jugador/' + idJugador,
+            dataType: 'JSON',
+            data: "",
+            success: function (result) {
+                $('#txtIdJugador').val(result.idJugador);
+                $('#txtNombre').val(result.nombre);
+                $('#txtApellidoPaterno').val(result.apellidoPaterno);
+                $('#txtApellidoMaterno').val(result.apellidoMaterno);
+                $('#txtFoto').val(result.foto);
+                $('#ddlNacionalidad').val(result.nacionalidad.idPais);
+                $('#txtFechaNacimiento').val(result.fechaNacimiento);
+                $('#ddlPosicion').val(result.posicion.idPosicion);
+            },
+            error: function (result) {  // codigo de estado 400 o 500
+                alert("Ocurrio un error al realizar la consulta: " + result.responseJSON.ErrorMessage);
+            }
+        });
+    };
+
+
+    var accion = "";
+
+    function Formulario(idJugador) {
+
+        if (idJugador > 0) {
+            GetById(idJugador);
+            accion = "update";
+        } else if (idJugador == 0) {
+            $('#formulario').modal('show');
+            accion = "add";
+        }
+        $('#formulario').modal('show');
+    }
+
+    function AddOrDelete() {
+        if (accion == "update") {
+            Update();
+        } else if (accion == "add") {
+            Add();
+        }
+        Cerrar();
+    }
+
+    function Cerrar() {
+        $('#txtNombre').val('');
+        $('#txtApellidoPaterno').val('')
+        $('#txtApellidoMaterno').val('')
+        $('#txtFoto').val('')
+        $('#ddlNacionalidad').val('')
+        $('#txtFechaNacimiento').val('');
+        $('#ddlPosicion').val('');
+        $('#formulario').modal('hide');
+    }
+
+    function Update() {
+
+        var Jugador = {
+            nombre: $('#txtNombre').val(),
+            apellidoPaterno: $('#txtApellidoPaterno').val(),
+            apellidoMaterno: $('#txtApellidoMaterno').val(),
+            foto: $('#txtFoto').val(),
+            nacionalidad: {
+                idPais: $('#ddlNacionalidad').val(),
+            },
+            fechaNacimiento: $("#txtFechaNacimiento").val(),
+            posicion: {
+                idPosicion: $("#ddlPosicion").val(),
+            },
+            equipo: {
+                idEquipo: $("#ddlEquipo").val(),
+            }
+        }
+
+        $.ajax({
+            type: 'PUT',
+            url: 'http://192.168.0.123/api/Jugador/',
+            dataType: 'json',
+            contentType: "application/json",
+            data: JSON.stringify(Jugador),
+            success: function (result) {
+                if (result.Correct) {
+                    $('tbody').empty();
+                    GetAll();
+                } else {
+                    alert('Error al actualizar');
+                }
+                console.log(result);
+            },
+            error: function (result) {
+                alert('Error en la consulta.' + result.responseText);
+            }
+        });
+        accion = false;
+    };
+
+
+    function Add() {
+        var Jugador = {
+            nombre: $('#txtNombre').val(),
+            apellidoPaterno: $('#txtApellidoPaterno').val(),
+            apellidoMaterno: $('#txtApellidoMaterno').val(),
+            foto: $('#txtFoto').val(),
+            nacionalidad: {
+                idPais: $('#ddlNacionalidad').val(),
+            },
+            fechaNacimiento: $("#txtFechaNacimiento").val(),
+            posicion: {
+                idPosicion: $("#ddlPosicion").val(),
+            }
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: 'http://192.168.0.123/api/Jugador/',
+            dataType: 'JSON',
+            contentType: "application/json",
+            data: JSON.stringify(Jugador),
+            success: function (result) {
+                if (result) {
+                    alert("Se a agregado correctamente el Jugador");
+                } else {
+                    alert('Error al Agregar');
+                }
+                Console(respond);
+            },
+            error: function (result) {
+                alert('Error en la consulta.' + result.responseJSON.ErrorMessage);
+            }
+        })
+    }
+
+    function PaisGetAll() {
+        $.ajax({
+            type: 'GET',
+            url: 'http://192.168.0.123/api/Pais',
+            success: function (result) {
+                $("#ddlNacionalidad").append('<option value="' + 0 + '">' + 'Seleccione una opción' + '</option>');
+                $.each(result, function (i, pais) {
+                    $("#ddlNacionalidad").append('<option value="'
+                        + pais.idPais + '">'
+                        + pais.nombre + '</option>');
+                });
+            }
+        });
+    }
+
+    function PosicionGetAll() {
+        $.ajax({
+            type: 'GET',
+            url: 'http://192.168.0.123/api/Posicion',
+            success: function (result) {
+                $("#ddlPosicion").append('<option value="' + 0 + '">' + 'Seleccione una opción' + '</option>');
+                $.each(result, function (i, posicion) {
+                    $("#ddlPosicion").append('<option value="'
+                        + posicion.idPosicion + '">'
+                        + posicion.nombre + '</option>');
+                });
+            }
+        });
+    }
+
+    function EquipoGetAll() {
+        $.ajax({
+            type: 'GET',
+            url: 'http://192.168.0.123/api/Equipo/GetAll',
+            success: function (result) {
+                $("#ddlEquipo").append('<option value="' + 0 + '">' + 'Seleccione una opción' + '</option>');
+                $.each(result, function (i, equipo) {
+                    $("#ddlEquipo").append('<option value="'
+                        + equipo.idEquipo + '">'
+                        + equipo.nombre + '</option>');
+                });
+            }
+        });
+    }
+    function getJugador() {
+        $.ajax({
+            url: 'http://192.168.0.123/api/Jugador',
+            dataType: 'JSON',
+            data: "",
+            type: 'GET',
+            success: function (Jugador) {
+                $('#jugadorTable tbody').empty();
+                $.each(Jugador, function (i, Jugadores) {
+                    $('#jugadorTable tbody').append(
+                        "<tr>"
+                        + "<td>" + '<a class = "btn btn-warning" onclick="Formulario(' + Jugadores.idJugador + ')">' + "EDITAR" + '</a>' + "</td>"
+                        + "<td>" + Jugadores.idJugador + "</td>"
+                        + "<td>" + Jugadores.nombre + "</td>"
+                        + "<td>" + Jugadores.apellidoPaterno + "</td>"
+                        + "<td>" + Jugadores.apellidoMaterno + "</td>"
+                        + "<td>" + "<img src=" + Jugadores.foto + " width='100' height='100'></img>" + "</td>"
+                        + "<td>" + Jugadores.nacionalidad.nombre + "</td>"
+                        + "<td>" + Jugadores.fechaNacimiento + "</td>"
+                        + "<td>" + Jugadores.posicion.nombre + "</td>"
+                        + "<td>" + '<button class="btn btn-danger" onclick="Delete(' + Jugadores.idJugador + ')">' + "ELIMINAR" + '</button>' + "</td>"
+                        + "</tr>");
+                });
+            },
+            error: function (error) {
+                console.log('Error: ', error);
+                alert('No se pudo obtener la lista de jugadores');
+            }
+        });
+    }
+</script>

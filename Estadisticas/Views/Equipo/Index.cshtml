@@ -1,0 +1,290 @@
+﻿@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<h1 style="text-align:center">Equipo</h1>
+<div class="row">
+    <div class="col-md-6"><button class="btn btn-default" onclick="Formulario(0)">Agregar</button></div>
+</div>
+<div class="modal" id="formulario" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Formulario de Equipo</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtIdEquipo" hidden />
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtNombre" placeholder="Nombre" />
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtLogo" placeholder="Logo" />
+                    </div>
+                    <div class="form-group">
+                        <select class="form-select" id="ddlPais" aria-label="Default select example">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <select class="form-select" id="ddlEstadio" aria-label="Default select example">
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="AddOrDelete()">Guardar</button>
+                <button type="button" class="btn btn-secondary" onclick="Cerrar()" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-5">
+
+            <div class="modal" id="myModal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title">Detalle</h4>
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <h5>
+                                Acción completada con éxito
+                            </h5>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" value="Regresar" data-dismiss="modal">Regresar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<table id="equipoTable" class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Editar</th>
+            <th>IdEquipo</th>
+            <th>Nombre</th>
+            <th>Logo</th>
+            <th>Pais</th>
+            <th>Estadio</th>
+            <th>Eliminar</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+
+    $(document).ready(function () {
+        getEquipo();
+        EstadioGetAll();
+        PaisGetAll();
+    });
+
+    function Delete(IdEquipo) {
+        if (confirm("¿Estas seguro de eliminar el equipo seleccionado?")) {
+            $.ajax({
+                type: 'DELETE',
+                url: 'http://192.168.0.123/api/Equipo/Delete/' + IdEquipo,
+                success: function (result) {
+                    if (result) {
+                        alert('Se a eliminado el equipo correctamente');
+                        location.reload();
+                    } else {
+                        alert('Error al eliminar el equipo');
+                    }
+                },
+                error: function (result) {
+                    alert('Error en la consulta.' + result.responseJSON.ErrorMessage);
+                }
+            });
+        }
+    }
+
+    function GetById(idEquipo) {
+        $.ajax({
+            type: 'GET',
+            url: 'http://192.168.0.123/api/Equipo/GetById/' + idEquipo,
+            dataType: 'JSON',
+            data: "",
+            success: function (result) {
+                $('#txtIdEquipo').val(result.idEquipo);
+                $('#txtNombre').val(result.nombre);
+                $('#txtLogo').val(result.logo);
+                $('#ddlPais').val(result.pais.idPais);
+                $('#ddlEstadio').val(result.estadio.idEstadio);
+            },
+            error: function (result) {  // codigo de estado 400 o 500
+                alert("Ocurrio un error al realizar la consulta: " + result.responseJSON.ErrorMessage);
+            }
+        });
+    };
+
+
+    var accion = "";
+
+    function Formulario(idEquipo) {
+
+        if (idEquipo > 0) {
+            GetById(idEquipo);
+            accion = "update";
+        } else if (idEquipo == 0) {
+            $('#formulario').modal('show');
+            accion = "add";
+        }
+        $('#formulario').modal('show');
+    }
+
+    function AddOrDelete() {
+        if (accion == "update") {
+            Update();
+        } else if (accion == "add") {
+            Add();
+        }
+        Cerrar();
+    }
+
+    function Cerrar() {
+        $('#txtNombre').val('');
+        $('#txtLogo').val('')
+        $('#ddlPais').val('')
+        $('#ddlEstadio').val('')
+        $('#formulario').modal('hide');
+    }
+
+    function Update() {
+
+        var Equipo = {
+            nombre: $('#txtNombre').val(),
+            logo: $('#txtLogo').val(),
+            pais: {
+                idPais: $('#ddlPais').val(),
+            },
+            estadio: {
+                idEstadio: $("#ddlEstadio").val(),
+            }
+        }
+
+        $.ajax({
+            type: 'PUT',
+            url: 'http://192.168.0.123/api/Equipo/Update/',
+            datatype: 'json',
+            data: Equipo,
+            success: function (result) {
+                if (result) {
+                    $('tbody').empty();
+                    GetAll();
+                } else {
+                    alert('Error al actualizar');
+                }
+                Console(respond);
+            },
+            error: function (result) {
+                alert('Error en la consulta.');
+            }
+        });
+        accion = false;
+    };
+
+    function Add() {
+        var Equipo = {
+            nombre: $('#txtNombre').val(),
+            logo: $('#txtLogo').val(),
+            pais: {
+                idPais: $('#ddlPais').val(),
+            },
+            estadio: {
+                idEstadio: $("#ddlEstadio").val(),
+            }
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: 'http://192.168.0.123/api/Equipo/Add/',
+            dataType: 'JSON',
+            contentType: "application/json",
+            data: JSON.stringify(Equipo),
+            success: function (result) {
+                if (result) {
+                    alert("Se a agregado correctamente");
+                } else {
+                    alert('Error al Agregar');
+                }
+                console.log(result);
+            },
+            error: function (result) {
+                alert('Error en la consulta. Detalles: ' + result.responseText);
+            }
+        })
+    }
+
+
+    function PaisGetAll() {
+        $.ajax({
+            type: 'GET',
+            url: 'http://192.168.0.123/api/Pais',
+            success: function (result) {
+                $("#ddlPais").append('<option value="' + 0 + '">' + 'Seleccione una opción' + '</option>');
+                $.each(result, function (i, pais) {
+                    $("#ddlPais").append('<option value="'
+                        + pais.idPais + '">'
+                        + pais.nombre + '</option>');
+                });
+            }
+        });
+    }
+
+    function EstadioGetAll() {
+        $.ajax({
+            type: 'GET',
+            url: 'http://192.168.0.123/api/Estadio',
+            success: function (result) {
+                $("#ddlEstadio").append('<option value="' + 0 + '">' + 'Seleccione una opción' + '</option>');
+                $.each(result, function (i, estadio) {
+                    $("#ddlEstadio").append('<option value="'
+                        + estadio.idEstadio + '">'
+                        + estadio.nombre + '</option>');
+                });
+            }
+        });
+    }
+    function getEquipo() {
+        $.ajax({
+           url: 'http://192.168.0.123/api/Equipo/GetAll',
+           dataType: 'JSON',
+           data: "",
+           type: 'GET',
+           success: function (Equipo) {
+                $('#equipoTable tbody').empty();
+                $.each(Equipo, function (i, Equipos) {
+                $('#equipoTable tbody').append(
+                      "<tr>"
+                    + "<td>" + '<a class = "btn btn-warning" onclick="Formulario(' + Equipos.idEquipo + ')">' + "EDITAR" + '</a>' + "</td>"
+                    + "<td>" + Equipos.idEquipo + "</td>"
+                    + "<td>" + Equipos.nombre + "</td>"
+                        + "<td>" + "<img src=" + Equipos.logo + " width='100' height='100'></img>" + "</td>"
+                    + "<td>" + Equipos.pais.nombre + "</td>"
+                    + "<td>" + Equipos.estadio.nombre + "</td>"
+                    + "<td>" + '<button class="btn btn-danger" onclick="Delete(' + Equipos.idEquipo + ')">' + "ELIMINAR" + '</button>' + "</td>"
+                    + "</tr>");
+                    });
+                },
+                error: function (error) {
+                    console.log('Error: ', error);
+                    alert('No se pudo obtener la lista de equipos');
+                }
+            });
+        }
+</script>
